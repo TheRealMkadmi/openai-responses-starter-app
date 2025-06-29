@@ -2,6 +2,7 @@ import { DEVELOPER_PROMPT } from "@/config/constants";
 import { parse } from "partial-json";
 import { handleTool } from "@/lib/tools/tools-handling";
 import useConversationStore from "@/stores/useConversationStore";
+import useUIStore from "@/stores/useUIStore";
 import { getTools } from "./tools/tools";
 import { Annotation } from "@/components/annotations";
 import { functionsMap } from "@/config/functions";
@@ -94,10 +95,17 @@ export const handleTurn = async (
         return { role, content };
       });
     // Get response from the API (defined in app/api/turn_response/route.ts)
+    // Include model, apiKey, and temperature based on UI store settings
+    const { modelConfig } = useUIStore.getState();
     const response = await fetch("/api/turn_response", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: apiMessages, tools }),
+      body: JSON.stringify({
+        messages: apiMessages,
+        tools,
+        model: modelConfig.selectedModel,
+        apiKey: modelConfig.apiKey,
+      }),
     });
 
     if (!response.ok) {

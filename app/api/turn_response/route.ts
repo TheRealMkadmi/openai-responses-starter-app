@@ -7,8 +7,10 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
-    const { messages, tools } = await request.json();
-    const apiKey = process.env.OPENAI_API_KEY;
+    // Extract parameters from request body
+    const { messages, tools, model: requestedModel, apiKey: clientKey } = await request.json();
+    // Determine API key, fallback to environment variable
+    const apiKey = clientKey || process.env.OPENAI_API_KEY;
     if (!apiKey) {
       console.error("OPENAI_API_KEY is not defined in environment variables");
       return NextResponse.json(
@@ -17,12 +19,16 @@ export async function POST(request: Request) {
       );
     }
     
-    const openai = new OpenAI({
-      apiKey: apiKey,
-    });
+    if (!apiKey) {
+      console.error("API key not provided or configured");
+      return NextResponse.json({ error: "API key not configured" }, { status: 500 });
+    }
+    const openai = new OpenAI({ apiKey });
 
+    // Use requested model or fallback to default
+    const modelToUse = requestedModel || MODEL;
     const events = await openai.responses.create({
-      model: MODEL,
+      model: modelToUse,
       input: messages,
       tools,
       stream: true,

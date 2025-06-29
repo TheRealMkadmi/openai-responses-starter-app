@@ -23,14 +23,23 @@ import {
   Sidebar,
   Eye,
   EyeOff,
+  RefreshCw,
 } from "lucide-react";
 import useUIStore from "@/stores/useUIStore";
+import useConversationStore from "@/stores/useConversationStore";
 
 const models = [
-  { value: "o1-mini", label: "o1-mini", description: "Fast reasoning model" },
-  { value: "o1-preview", label: "o1-preview", description: "Advanced reasoning model" },
+  { value: "o3", label: "o3", description: "Standard performance model" },
+  { value: "o3-pro", label: "o3-pro", description: "Enhanced professional model" },
+  { value: "o4-mini", label: "o4-mini", description: "Compact flagship model" },
+  { value: "o4-mini-deep-research", label: "o4-mini-deep-research", description: "Deep research model" },
+  { value: "o3-deep-research", label: "o3-deep-research", description: "Deep research model" },
+  { value: "codex-mini-latest", label: "codex-mini-latest", description: "Coding assistant model" },
+  { value: "gpt-4.1", label: "GPT-4.1", description: "Next-gen flagship model" },
+  { value: "gpt-4.1-mini", label: "GPT-4.1-mini", description: "Compact GPT-4.1 model" },
+  { value: "gpt-4.5-preview", label: "GPT-4.5-preview", description: "Preview of upcoming GPT-4.5" },
+  { value: "chatgpt-4o-latest", label: "ChatGPT-4o-latest", description: "Latest ChatGPT-4o model" },
   { value: "gpt-4o", label: "GPT-4o", description: "Multimodal flagship model" },
-  { value: "gpt-4o-mini", label: "GPT-4o mini", description: "Affordable and intelligent small model" },
 ];
 
 const reasoningLevels = [
@@ -42,9 +51,16 @@ const reasoningLevels = [
 export default function AppHeader() {
   const { modelConfig, setModelConfig, isRightSidebarOpen, setRightSidebarOpen } = useUIStore();
   const [showApiKey, setShowApiKey] = useState(false);
+  const clearChat = useConversationStore(state => state.clearChat);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
 
   const selectedModel = models.find(m => m.value === modelConfig.selectedModel);
+
+  const handleModelSelect = (modelValue: string) => {
+    setModelConfig({ selectedModel: modelValue });
+    setIsModelSelectorOpen(false);
+  };
 
   return (
     <header className="flex items-center justify-between p-4 border-b bg-white/80 backdrop-blur-sm sticky top-0 z-40">
@@ -57,7 +73,7 @@ export default function AppHeader() {
         </div>
         
         {/* Model Selector */}
-        <Popover>
+        <Popover open={isModelSelectorOpen} onOpenChange={setIsModelSelectorOpen}>
           <PopoverTrigger asChild>
             <Button variant="outline" className="min-w-[140px] justify-between">
               <span className="truncate">{selectedModel?.label}</span>
@@ -72,7 +88,7 @@ export default function AppHeader() {
                   key={model.value}
                   variant={modelConfig.selectedModel === model.value ? "default" : "ghost"}
                   className="w-full justify-start h-auto p-3"
-                  onClick={() => setModelConfig({ selectedModel: model.value })}
+                  onClick={() => handleModelSelect(model.value)}
                 >
                   <div className="text-left">
                     <div className="font-medium">{model.label}</div>
@@ -86,6 +102,10 @@ export default function AppHeader() {
       </div>
 
       <div className="flex items-center gap-2">
+        {/* New Chat */}
+        <Button variant="ghost" size="icon" onClick={clearChat} title="New Chat">
+          <RefreshCw className="w-4 h-4" />
+        </Button>
         {/* Settings Dialog */}
         <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
           <DialogTrigger asChild>

@@ -19,7 +19,7 @@ const useUIStore = create<UIState>()(
     (set) => ({
       isRightSidebarOpen: false,
       modelConfig: {
-        selectedModel: "o1-mini",
+        selectedModel: "o4-mini",
         reasoning: "medium",
         apiKey: "",
       },

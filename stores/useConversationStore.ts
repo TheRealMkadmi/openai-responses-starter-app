@@ -17,6 +17,8 @@ interface ConversationState {
   addConversationItem: (message: ChatCompletionMessageParam) => void;
   setAssistantLoading: (loading: boolean) => void;
   rawSet: (state: any) => void;
+  // Clears the chat back to initial state
+  clearChat: () => void;
 }
 
 const useConversationStore = create<ConversationState>((set) => ({
@@ -39,6 +41,17 @@ const useConversationStore = create<ConversationState>((set) => ({
     })),
   setAssistantLoading: (loading) => set({ isAssistantLoading: loading }),
   rawSet: set,
+  clearChat: () => set(() => ({
+    chatMessages: [
+      {
+        type: "message",
+        role: "assistant",
+        content: [{ type: "output_text", text: INITIAL_MESSAGE }],
+      },
+    ],
+    conversationItems: [],
+    isAssistantLoading: false,
+  })),
 }));
 
 export default useConversationStore;
