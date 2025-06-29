@@ -27,19 +27,7 @@ import {
 } from "lucide-react";
 import useUIStore from "@/stores/useUIStore";
 import useConversationStore from "@/stores/useConversationStore";
-
-const models = [
-  { value: "o3", label: "o3", description: "Standard performance model" },
-  { value: "o3-pro", label: "o3-pro", description: "Enhanced professional model" },
-  { value: "o4-mini", label: "o4-mini", description: "Compact flagship model" },
-  { value: "o4-mini-deep-research", label: "o4-mini-deep-research", description: "Deep research model" },
-  { value: "o3-deep-research", label: "o3-deep-research", description: "Deep research model" },
-  { value: "codex-mini-latest", label: "codex-mini-latest", description: "Coding assistant model" },
-  { value: "gpt-4.1", label: "GPT-4.1", description: "Next-gen flagship model" },
-  { value: "gpt-4.1-mini", label: "GPT-4.1-mini", description: "Compact GPT-4.1 model" },
-  { value: "gpt-4.5-preview", label: "GPT-4.5-preview", description: "Preview of upcoming GPT-4.5" },
-  { value: "gpt-4o", label: "GPT-4o", description: "Multimodal flagship model" },
-];
+import { models, getModelInfo, supportsReasoning } from "@/config/models";
 
 const reasoningLevels = [
   { value: "low", label: "Low", description: "Quick responses" },
@@ -54,7 +42,7 @@ export default function AppHeader() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
 
-  const selectedModel = models.find(m => m.value === modelConfig.selectedModel);
+  const selectedModel = getModelInfo(modelConfig.selectedModel);
 
   const handleModelSelect = (modelValue: string) => {
     setModelConfig({ selectedModel: modelValue });
@@ -149,26 +137,28 @@ export default function AppHeader() {
                 </div>
               </div>
 
-              {/* Reasoning Level */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Reasoning Effort</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {reasoningLevels.map((level) => (
-                    <Button
-                      key={level.value}
-                      variant={modelConfig.reasoning === level.value ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setModelConfig({ reasoning: level.value as any })}
-                      className="h-auto p-2"
-                    >
-                      <div className="text-center">
-                        <div className="font-medium text-xs">{level.label}</div>
-                        <div className="text-xs opacity-70">{level.description}</div>
-                      </div>
-                    </Button>
-                  ))}
+              {/* Reasoning Level - Only show for models that support reasoning */}
+              {supportsReasoning(modelConfig.selectedModel) && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Reasoning Effort</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {reasoningLevels.map((level) => (
+                      <Button
+                        key={level.value}
+                        variant={modelConfig.reasoning === level.value ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setModelConfig({ reasoning: level.value as any })}
+                        className="h-auto p-2"
+                      >
+                        <div className="text-center">
+                          <div className="font-medium text-xs">{level.label}</div>
+                          <div className="text-xs opacity-70">{level.description}</div>
+                        </div>
+                      </Button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>

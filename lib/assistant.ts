@@ -6,6 +6,7 @@ import useUIStore from "@/stores/useUIStore";
 import { getTools } from "./tools/tools";
 import { Annotation } from "@/components/annotations";
 import { functionsMap } from "@/config/functions";
+import { supportsReasoning } from "@/config/models";
 
 const normalizeAnnotation = (annotation: any): Annotation => ({
   ...annotation,
@@ -97,19 +98,26 @@ export const handleTurn = async (
     // Get response from the API (defined in app/api/turn_response/route.ts)
     // Include model, apiKey, and temperature based on UI store settings
     const { modelConfig } = useUIStore.getState();
-    // Include reasoning effort in request
+    
+    // Build request payload conditionally based on model capabilities
+    const requestPayload: any = {
+      messages: apiMessages,
+      tools,
+      model: modelConfig.selectedModel,
+      apiKey: modelConfig.apiKey,
+    };
+    
+    // Only include reasoning effort for models that support it
+    if (supportsReasoning(modelConfig.selectedModel)) {
+      requestPayload.reasoning = {
+        effort: modelConfig.reasoning,
+      };
+    }
+    
     const response = await fetch("/api/turn_response", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messages: apiMessages,
-        tools,
-        model: modelConfig.selectedModel,
-        apiKey: modelConfig.apiKey,
-        reasoning: {
-          effort: modelConfig.reasoning,
-        },
-      }),
+      body: JSON.stringify(requestPayload),
     });
 
     if (!response.ok) {

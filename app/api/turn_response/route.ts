@@ -1,4 +1,5 @@
 import { MODEL } from "@/config/constants";
+import { supportsReasoning } from "@/config/models";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
@@ -27,16 +28,23 @@ export async function POST(request: Request) {
 
     // Use requested model or fallback to default
     const modelToUse = requestedModel || MODEL;
-        // Call OpenAI with reasoning effort (TS cast to any)
-        // Include nested reasoning object per latest Responses API
-        const events = await openai.responses.create({
-            model: modelToUse,
-            input: messages,
-            tools,
-            reasoning,
-            stream: true,
-            parallel_tool_calls: true,
-        });
+    
+    // Build OpenAI request payload conditionally based on model capabilities
+    const openaiPayload: any = {
+      model: modelToUse,
+      input: messages,
+      tools,
+      stream: true,
+      parallel_tool_calls: true,
+    };
+    
+    // Only include reasoning for models that support it
+    if (supportsReasoning(modelToUse) && reasoning) {
+      openaiPayload.reasoning = reasoning;
+    }
+    
+    // Call OpenAI with conditionally included reasoning
+    const events = await openai.responses.create(openaiPayload as any);
 
     // Create a ReadableStream that emits SSE data
     const stream = new ReadableStream({
