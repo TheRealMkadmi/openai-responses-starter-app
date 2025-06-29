@@ -2,19 +2,31 @@ import { MODEL } from "@/config/constants";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
+// Ensure this API route runs in Node.js runtime so process.env variables are accessible
+export const runtime = "nodejs";
+
 export async function POST(request: Request) {
   try {
     const { messages, tools } = await request.json();
-    console.log("Received messages:", messages);
-
-    const openai = new OpenAI();
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      console.error("OPENAI_API_KEY is not defined in environment variables");
+      return NextResponse.json(
+        { error: "API key not configured" },
+        { status: 500 }
+      );
+    }
+    
+    const openai = new OpenAI({
+      apiKey: apiKey,
+    });
 
     const events = await openai.responses.create({
       model: MODEL,
       input: messages,
       tools,
       stream: true,
-      parallel_tool_calls: false,
+      parallel_tool_calls: true,
     });
 
     // Create a ReadableStream that emits SSE data
