@@ -41,6 +41,7 @@ export async function POST(request: Request) {
     // Only include reasoning for models that support it
     if (supportsReasoning(modelToUse) && reasoning) {
       openaiPayload.reasoning = reasoning;
+      openaiPayload.reasoning.summary = "auto";
     }
     
     // Call OpenAI with conditionally included reasoning

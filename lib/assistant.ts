@@ -26,6 +26,8 @@ export interface MessageItem {
   role: "user" | "assistant" | "system";
   id?: string;
   content: ContentItem[];
+  /** Flag to mark a reasoning summary message */
+  isSummary?: boolean;
 }
 
 // Custom items to display in chat
@@ -189,9 +191,39 @@ export const processMessages = async () => {
   let functionArguments = "";
   // For streaming MCP tool call arguments
   let mcpArguments = "";
+  // For streaming reasoning summary text
+  let summaryBuffer = "";
 
   await handleTurn(allConversationItems, tools, async ({ event, data }) => {
     switch (event) {
+      // Handle streaming summary deltas
+      case "response.reasoning_summary_text.delta": {
+        const { delta, item_id } = data;
+        summaryBuffer += (typeof delta === 'string' ? delta : '');
+        const lastItem = chatMessages[chatMessages.length - 1];
+        if (
+          !lastItem ||
+          lastItem.type !== "message" ||
+          lastItem.id !== item_id ||
+          !(lastItem as any).isSummary
+        ) {
+          chatMessages.push({
+            type: "message",
+            role: "assistant",
+            id: item_id,
+            isSummary: true,
+            content: [{ type: "output_text", text: summaryBuffer }],
+          } as MessageItem & { isSummary: boolean });
+        } else {
+          lastItem.content[0].text = summaryBuffer;
+        }
+        setChatMessages([...chatMessages]);
+        break;
+      }
+      // Marker for summary completion (no-op)
+      case "response.reasoning_summary_text.finished": {
+        break;
+      }
       case "response.output_text.delta":
       case "response.output_text.annotation.added": {
         const { delta, item_id, annotation } = data;
