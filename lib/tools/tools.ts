@@ -1,9 +1,11 @@
 import { toolsList } from "../../config/tools-list";
 import useToolsStore from "@/stores/useToolsStore";
 import { WebSearchConfig } from "@/stores/useToolsStore";
+import useUIStore from "@/stores/useUIStore";
+import { isResearchModel } from "@/config/models";
 
 interface WebSearchTool extends WebSearchConfig {
-  type: "web_search";
+  type: "web_search" | "web_search_preview";
 }
 export const getTools = () => {
   const {
@@ -17,13 +19,22 @@ export const getTools = () => {
     mcpConfig,
   } = useToolsStore.getState();
 
+  // Get the current model to determine the correct web search tool type
+  const { modelConfig } = useUIStore.getState();
+  const currentModel = modelConfig.selectedModel;
+
   const tools = [];
 
   if (webSearchEnabled) {
+    // Use web_search_preview for research models, web_search for others
+    const webSearchType = isResearchModel(currentModel) ? "web_search_preview" : "web_search";
+    
     const webSearchTool: WebSearchTool = {
-      type: "web_search",
+      type: webSearchType,
     };
+    // Only attach user_location for non-research web_search
     if (
+      webSearchType === "web_search" &&
       webSearchConfig.user_location &&
       (webSearchConfig.user_location.country !== "" ||
         webSearchConfig.user_location.region !== "" ||

@@ -32,7 +32,8 @@ export const getModelInfo = (modelValue: string): ModelInfo | undefined => {
 
 export const supportsReasoning = (modelValue: string): boolean => {
   const model = getModelInfo(modelValue);
-  return model?.type === "reasoning" || model?.type === "research";
+  // Only reasoning-type models support adjustable reasoning effort
+  return model?.type === "reasoning";
 };
 
 export const isResearchModel = (modelValue: string): boolean => {
