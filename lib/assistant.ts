@@ -97,6 +97,7 @@ export const handleTurn = async (
     // Get response from the API (defined in app/api/turn_response/route.ts)
     // Include model, apiKey, and temperature based on UI store settings
     const { modelConfig } = useUIStore.getState();
+    // Include reasoning effort in request
     const response = await fetch("/api/turn_response", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -105,6 +106,9 @@ export const handleTurn = async (
         tools,
         model: modelConfig.selectedModel,
         apiKey: modelConfig.apiKey,
+        reasoning: {
+          effort: modelConfig.reasoning,
+        },
       }),
     });
 

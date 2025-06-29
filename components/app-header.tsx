@@ -38,7 +38,6 @@ const models = [
   { value: "gpt-4.1", label: "GPT-4.1", description: "Next-gen flagship model" },
   { value: "gpt-4.1-mini", label: "GPT-4.1-mini", description: "Compact GPT-4.1 model" },
   { value: "gpt-4.5-preview", label: "GPT-4.5-preview", description: "Preview of upcoming GPT-4.5" },
-  { value: "chatgpt-4o-latest", label: "ChatGPT-4o-latest", description: "Latest ChatGPT-4o model" },
   { value: "gpt-4o", label: "GPT-4o", description: "Multimodal flagship model" },
 ];
 
@@ -80,22 +79,24 @@ export default function AppHeader() {
               <ChevronDown className="w-4 h-4 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-80" align="start">
+          <PopoverContent className="w-80 max-h-80 overflow-y-auto" align="start">
             <div className="space-y-2">
-              <h4 className="font-medium text-sm text-gray-900">Select Model</h4>
-              {models.map((model) => (
-                <Button
-                  key={model.value}
-                  variant={modelConfig.selectedModel === model.value ? "default" : "ghost"}
-                  className="w-full justify-start h-auto p-3"
-                  onClick={() => handleModelSelect(model.value)}
-                >
-                  <div className="text-left">
-                    <div className="font-medium">{model.label}</div>
-                    <div className="text-xs text-gray-500">{model.description}</div>
-                  </div>
-                </Button>
-              ))}
+              <h4 className="font-medium text-sm text-gray-900 sticky top-0 bg-white py-2 border-b">Select Model</h4>
+              <div className="space-y-2">
+                {models.map((model) => (
+                  <Button
+                    key={model.value}
+                    variant={modelConfig.selectedModel === model.value ? "default" : "ghost"}
+                    className="w-full justify-start h-auto p-3"
+                    onClick={() => handleModelSelect(model.value)}
+                  >
+                    <div className="text-left">
+                      <div className="font-medium">{model.label}</div>
+                      <div className="text-xs text-gray-500">{model.description}</div>
+                    </div>
+                  </Button>
+                ))}
+              </div>
             </div>
           </PopoverContent>
         </Popover>

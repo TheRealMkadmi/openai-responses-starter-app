@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export async function POST(request: Request) {
   try {
     // Extract parameters from request body
-    const { messages, tools, model: requestedModel, apiKey: clientKey } = await request.json();
+        const { messages, tools, model: requestedModel, apiKey: clientKey, reasoning } = await request.json();
     // Determine API key, fallback to environment variable
     const apiKey = clientKey || process.env.OPENAI_API_KEY;
     if (!apiKey) {
@@ -27,13 +27,16 @@ export async function POST(request: Request) {
 
     // Use requested model or fallback to default
     const modelToUse = requestedModel || MODEL;
-    const events = await openai.responses.create({
-      model: modelToUse,
-      input: messages,
-      tools,
-      stream: true,
-      parallel_tool_calls: true,
-    });
+        // Call OpenAI with reasoning effort (TS cast to any)
+        // Include nested reasoning object per latest Responses API
+        const events = await openai.responses.create({
+            model: modelToUse,
+            input: messages,
+            tools,
+            reasoning,
+            stream: true,
+            parallel_tool_calls: true,
+        });
 
     // Create a ReadableStream that emits SSE data
     const stream = new ReadableStream({
