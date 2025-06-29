@@ -78,14 +78,26 @@ export const handleTurn = async (
   onMessage: (data: any) => void
 ) => {
   try {
+    // Prepare and filter conversation history into valid chat messages for API
+    const apiMessages = messages
+      .filter((item) => item.role && item.content !== undefined)
+      .map((item) => {
+        const role = item.role === "developer" ? "system" : item.role;
+        let content: string;
+        if (typeof item.content === "string") {
+          content = item.content;
+        } else if (Array.isArray(item.content)) {
+          content = item.content.map((ci: any) => ci.text ?? "").join("\n");
+        } else {
+          content = "";
+        }
+        return { role, content };
+      });
     // Get response from the API (defined in app/api/turn_response/route.ts)
     const response = await fetch("/api/turn_response", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messages: messages,
-        tools: tools,
-      }),
+      body: JSON.stringify({ messages: apiMessages, tools }),
     });
 
     if (!response.ok) {
