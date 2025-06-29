@@ -25,12 +25,12 @@ export default function PanelConfig({
   };
 
   return (
-    <div className="space-y-4 mb-6">
-      <div className="flex justify-between items-center">
+    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+      <div className="flex justify-between items-center mb-3">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <h1 className="text-black font-medium">{title}</h1>
+              <h3 className="text-gray-900 font-medium text-sm">{title}</h3>
             </TooltipTrigger>
             <TooltipContent>
               <p>{tooltip}</p>
@@ -44,7 +44,11 @@ export default function PanelConfig({
           disabled={disabled}
         />
       </div>
-      <div className="mt-1">{children}</div>
+      {enabled && children && (
+        <div className="mt-3 pt-3 border-t border-gray-200">
+          {children}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-export const MODEL = "o4-mini";
+export const MODEL = "o1-mini";
 
 // Developer prompt for the assistant
 export const DEVELOPER_PROMPT = `
@@ -8,12 +8,9 @@ If they ask for something that is related to their own data, use the file search
 If they ask something that could be solved through code, use the code interpreter tool to solve it.
 `;
 
-// Here is the context that you have available to you:
-// ${context}
-
 // Initial message that will be displayed in the chat
 export const INITIAL_MESSAGE = `
-Hi, how can I help you?
+Hello! I'm your AI assistant. How can I help you today?
 `;
 
 export const defaultVectorStore = {

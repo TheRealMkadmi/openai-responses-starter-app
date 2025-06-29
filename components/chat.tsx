@@ -6,6 +6,7 @@ import Message from "./message";
 import Annotations from "./annotations";
 import McpToolsList from "./mcp-tools-list";
 import McpApproval from "./mcp-approval";
+import WelcomeScreen from "./welcome-screen";
 import { Item, McpApprovalRequestItem } from "@/lib/assistant";
 import LoadingMessage from "./loading-message";
 import useConversationStore from "@/stores/useConversationStore";
@@ -46,86 +47,177 @@ const Chat: React.FC<ChatProps> = ({
     scrollToBottom();
   }, [items]);
 
-  return (
-    <div className="flex justify-center items-center size-full">
-      <div className="flex grow flex-col h-full max-w-[750px] gap-2">
-        <div className="h-[90vh] overflow-y-scroll px-10 flex flex-col">
-          <div className="mt-auto space-y-5 pt-4">
-            {items.map((item, index) => (
-              <React.Fragment key={index}>
-                {item.type === "tool_call" ? (
-                  <ToolCall toolCall={item} />
-                ) : item.type === "message" ? (
-                  <div className="flex flex-col gap-1">
-                    <Message message={item} />
-                    {item.content &&
-                      item.content[0].annotations &&
-                      item.content[0].annotations.length > 0 && (
-                        <Annotations
-                          annotations={item.content[0].annotations}
-                        />
-                      )}
-                  </div>
-                ) : item.type === "mcp_list_tools" ? (
-                  <McpToolsList item={item} />
-                ) : item.type === "mcp_approval_request" ? (
-                  <McpApproval
-                    item={item as McpApprovalRequestItem}
-                    onRespond={onApprovalResponse}
+  // Filter out the initial assistant message to determine if we should show welcome screen
+  const hasUserMessages = items.some(item => 
+    item.type === "message" && 
+    item.role === "user"
+  );
+
+  if (!hasUserMessages) {
+    return (
+      <div className="flex flex-col h-full">
+        <WelcomeScreen onSamplePrompt={onSendMessage} />
+        
+        {/* Input Area */}
+        <div className="border-t bg-white/80 backdrop-blur-sm">
+          <div className="max-w-4xl mx-auto p-4 md:p-6">
+            <div className="relative">
+              <div className="flex items-end gap-3 rounded-2xl border border-gray-200 bg-white shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20">
+                <div className="flex-1">
+                  <textarea
+                    id="prompt-textarea"
+                    tabIndex={0}
+                    dir="auto"
+                    rows={1}
+                    placeholder="Ask me anything..."
+                    className="block w-full resize-none border-0 bg-transparent px-4 py-4 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-0 sm:text-sm"
+                    value={inputMessageText}
+                    onChange={(e) => setinputMessageText(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    onCompositionStart={() => setIsComposing(true)}
+                    onCompositionEnd={() => setIsComposing(false)}
+                    style={{
+                      height: 'auto',
+                      minHeight: '56px',
+                      maxHeight: '200px',
+                    }}
+                    onInput={(e) => {
+                      const target = e.target as HTMLTextAreaElement;
+                      target.style.height = 'auto';
+                      target.style.height = Math.min(target.scrollHeight, 200) + 'px';
+                    }}
                   />
-                ) : null}
-              </React.Fragment>
-            ))}
-            {isAssistantLoading && <LoadingMessage />}
-            <div ref={itemsEndRef} />
-          </div>
-        </div>
-        <div className="flex-1 p-4 px-10">
-          <div className="flex items-center">
-            <div className="flex w-full items-center pb-4 md:pb-1">
-              <div className="flex w-full flex-col gap-1.5 rounded-[20px] p-2.5 pl-1.5 transition-colors bg-white border border-stone-200 shadow-sm">
-                <div className="flex items-end gap-1.5 md:gap-2 pl-4">
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <textarea
-                      id="prompt-textarea"
-                      tabIndex={0}
-                      dir="auto"
-                      rows={2}
-                      placeholder="Message..."
-                      className="mb-2 resize-none border-0 focus:outline-none text-sm bg-transparent px-0 pb-6 pt-2"
-                      value={inputMessageText}
-                      onChange={(e) => setinputMessageText(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      onCompositionStart={() => setIsComposing(true)}
-                      onCompositionEnd={() => setIsComposing(false)}
-                    />
-                  </div>
+                </div>
+                <div className="p-3">
                   <button
-                    disabled={!inputMessageText}
+                    disabled={!inputMessageText.trim() || isAssistantLoading}
                     data-testid="send-button"
-                    className="flex size-8 items-end justify-center rounded-full bg-black text-white transition-colors hover:opacity-70 focus-visible:outline-none focus-visible:outline-black disabled:bg-[#D7D7D7] disabled:text-[#f4f4f4] disabled:hover:opacity-100"
-                  onClick={() => {
+                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    onClick={() => {
                       onSendMessage(inputMessageText);
                       setinputMessageText("");
                     }}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      width="32"
-                      height="32"
+                      width="20"
+                      height="20"
                       fill="none"
-                      viewBox="0 0 32 32"
-                      className="icon-2xl"
+                      viewBox="0 0 24 24"
+                      className="text-white"
                     >
                       <path
                         fill="currentColor"
                         fillRule="evenodd"
-                        d="M15.192 8.906a1.143 1.143 0 0 1 1.616 0l5.143 5.143a1.143 1.143 0 0 1-1.616 1.616l-3.192-3.192v9.813a1.143 1.143 0 0 1-2.286 0v-9.813l-3.192 3.192a1.143 1.143 0 1 1-1.616-1.616z"
+                        d="M3.4 12L2.1 7.3c-.3-.8.5-1.6 1.3-1.3L20.6 11c.8.3.8 1.4 0 1.7L3.4 17.7c-.8.3-1.6-.5-1.3-1.3L3.4 12zm1.6 0L4.4 9.5 16.2 12 4.4 14.5 5 12z"
                         clipRule="evenodd"
                       />
                     </svg>
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto px-4 md:px-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="min-h-full flex flex-col justify-end">
+            <div className="space-y-6 py-8">
+              {items.map((item, index) => (
+                <React.Fragment key={index}>
+                  {item.type === "tool_call" ? (
+                    <ToolCall toolCall={item} />
+                  ) : item.type === "message" ? (
+                    <div className="flex flex-col gap-2">
+                      <Message message={item} />
+                      {item.content &&
+                        item.content[0].annotations &&
+                        item.content[0].annotations.length > 0 && (
+                          <Annotations
+                            annotations={item.content[0].annotations}
+                          />
+                        )}
+                    </div>
+                  ) : item.type === "mcp_list_tools" ? (
+                    <McpToolsList item={item} />
+                  ) : item.type === "mcp_approval_request" ? (
+                    <McpApproval
+                      item={item as McpApprovalRequestItem}
+                      onRespond={onApprovalResponse}
+                    />
+                  ) : null}
+                </React.Fragment>
+              ))}
+              {isAssistantLoading && <LoadingMessage />}
+              <div ref={itemsEndRef} />
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Input Area */}
+      <div className="border-t bg-white/80 backdrop-blur-sm">
+        <div className="max-w-4xl mx-auto p-4 md:p-6">
+          <div className="relative">
+            <div className="flex items-end gap-3 rounded-2xl border border-gray-200 bg-white shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20">
+              <div className="flex-1">
+                <textarea
+                  id="prompt-textarea"
+                  tabIndex={0}
+                  dir="auto"
+                  rows={1}
+                  placeholder="Ask me anything..."
+                  className="block w-full resize-none border-0 bg-transparent px-4 py-4 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-0 sm:text-sm"
+                  value={inputMessageText}
+                  onChange={(e) => setinputMessageText(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  onCompositionStart={() => setIsComposing(true)}
+                  onCompositionEnd={() => setIsComposing(false)}
+                  style={{
+                    height: 'auto',
+                    minHeight: '56px',
+                    maxHeight: '200px',
+                  }}
+                  onInput={(e) => {
+                    const target = e.target as HTMLTextAreaElement;
+                    target.style.height = 'auto';
+                    target.style.height = Math.min(target.scrollHeight, 200) + 'px';
+                  }}
+                />
+              </div>
+              <div className="p-3">
+                <button
+                  disabled={!inputMessageText.trim() || isAssistantLoading}
+                  data-testid="send-button"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  onClick={() => {
+                    onSendMessage(inputMessageText);
+                    setinputMessageText("");
+                  }}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    className="text-white"
+                  >
+                    <path
+                      fill="currentColor"
+                      fillRule="evenodd"
+                      d="M3.4 12L2.1 7.3c-.3-.8.5-1.6 1.3-1.3L20.6 11c.8.3.8 1.4 0 1.7L3.4 17.7c-.8.3-1.6-.5-1.3-1.3L3.4 12zm1.6 0L4.4 9.5 16.2 12 4.4 14.5 5 12z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
               </div>
             </div>
           </div>

@@ -112,4 +112,44 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.5);
+    border-radius: 3px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(156, 163, 175, 0.8);
+  }
+}
+
+@layer components {
+  .prose {
+    @apply text-gray-900;
+  }
+  
+  .prose code {
+    @apply bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono;
+  }
+  
+  .prose pre {
+    @apply bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto;
+  }
+  
+  .prose pre code {
+    @apply bg-transparent p-0 text-gray-100;
+  }
+  
+  .prose blockquote {
+    @apply border-l-4 border-gray-300 pl-4 italic text-gray-700;
+  }
 }
