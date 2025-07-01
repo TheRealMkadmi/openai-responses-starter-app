@@ -96,6 +96,8 @@ export const getTools = () => {
   }
 
   console.log("tools", tools);
+  console.log("webSearchEnabled:", webSearchEnabled);
+  console.log("currentModel:", currentModel);
 
   return tools;
 };

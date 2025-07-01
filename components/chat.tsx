@@ -7,9 +7,11 @@ import Annotations from "./annotations";
 import McpToolsList from "./mcp-tools-list";
 import McpApproval from "./mcp-approval";
 import WelcomeScreen from "./welcome-screen";
+import WebSearchCall from "./web-search-call";
 import { Item, McpApprovalRequestItem } from "@/lib/assistant";
 import LoadingMessage from "./loading-message";
 import useConversationStore from "@/stores/useConversationStore";
+import { ArrowUp } from "lucide-react";
 
 interface ChatProps {
   items: Item[];
@@ -23,29 +25,53 @@ const Chat: React.FC<ChatProps> = ({
   onApprovalResponse,
 }) => {
   const itemsEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [inputMessageText, setinputMessageText] = useState<string>("");
-  // This state is used to provide better user experience for non-English IMEs such as Japanese
   const [isComposing, setIsComposing] = useState(false);
   const { isAssistantLoading } = useConversationStore();
 
   const scrollToBottom = () => {
-    itemsEndRef.current?.scrollIntoView({ behavior: "instant" });
+    itemsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const adjustTextareaHeight = () => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      const scrollHeight = Math.min(textarea.scrollHeight, 200);
+      textarea.style.height = scrollHeight + 'px';
+    }
   };
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (event.key === "Enter" && !event.shiftKey && !isComposing) {
         event.preventDefault();
-        onSendMessage(inputMessageText);
-        setinputMessageText("");
+        if (inputMessageText.trim()) {
+          onSendMessage(inputMessageText);
+          setinputMessageText("");
+          setTimeout(adjustTextareaHeight, 0);
+        }
       }
     },
     [onSendMessage, inputMessageText, isComposing]
   );
 
+  const handleSend = () => {
+    if (inputMessageText.trim()) {
+      onSendMessage(inputMessageText);
+      setinputMessageText("");
+      setTimeout(adjustTextareaHeight, 0);
+    }
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [items]);
+
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [inputMessageText]);
 
   // Filter out the initial assistant message to determine if we should show welcome screen
   const hasUserMessages = items.some(item => 
@@ -58,65 +84,27 @@ const Chat: React.FC<ChatProps> = ({
       <div className="flex flex-col h-full">
         <WelcomeScreen onSamplePrompt={onSendMessage} />
         
-        {/* Input Area */}
-        <div className="border-t bg-white/80 backdrop-blur-sm">
-          <div className="max-w-4xl mx-auto p-4 md:p-6">
-            <div className="relative">
-              <div className="flex items-end gap-3 rounded-2xl border border-gray-200 bg-white shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20">
-                <div className="flex-1">
-                  <textarea
-                    id="prompt-textarea"
-                    tabIndex={0}
-                    dir="auto"
-                    rows={1}
-                    placeholder="Ask me anything..."
-                    className="block w-full resize-none border-0 bg-transparent px-4 py-4 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-0 sm:text-sm"
-                    value={inputMessageText}
-                    onChange={(e) => setinputMessageText(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    onCompositionStart={() => setIsComposing(true)}
-                    onCompositionEnd={() => setIsComposing(false)}
-                    style={{
-                      height: 'auto',
-                      minHeight: '56px',
-                      maxHeight: '200px',
-                    }}
-                    onInput={(e) => {
-                      const target = e.target as HTMLTextAreaElement;
-                      target.style.height = 'auto';
-                      target.style.height = Math.min(target.scrollHeight, 200) + 'px';
-                    }}
-                  />
-                </div>
-                <div className="p-3">
-                  <button
-                    disabled={!inputMessageText.trim() || isAssistantLoading}
-                    data-testid="send-button"
-                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                    onClick={() => {
-                      onSendMessage(inputMessageText);
-                      setinputMessageText("");
-                    }}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="20"
-                      height="20"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      className="text-white"
-                    >
-                      <path
-                        fill="currentColor"
-                        fillRule="evenodd"
-                        d="M3.4 12L2.1 7.3c-.3-.8.5-1.6 1.3-1.3L20.6 11c.8.3.8 1.4 0 1.7L3.4 17.7c-.8.3-1.6-.5-1.3-1.3L3.4 12zm1.6 0L4.4 9.5 16.2 12 4.4 14.5 5 12z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            </div>
+        <div className="chat-input-container">
+          <div className="chat-input-wrapper">
+            <textarea
+              ref={textareaRef}
+              placeholder="Message ChatGPT..."
+              className="chat-input"
+              value={inputMessageText}
+              onChange={(e) => setinputMessageText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onCompositionStart={() => setIsComposing(true)}
+              onCompositionEnd={() => setIsComposing(false)}
+              rows={1}
+            />
+            <button
+              disabled={!inputMessageText.trim() || isAssistantLoading}
+              className="send-button"
+              onClick={handleSend}
+              type="button"
+            >
+              <ArrowUp className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
@@ -125,102 +113,103 @@ const Chat: React.FC<ChatProps> = ({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="min-h-full flex flex-col justify-end">
-            <div className="space-y-6 py-8">
-              {items.map((item, index) => (
-                <React.Fragment key={index}>
-                  {item.type === "tool_call" ? (
-                    <ToolCall toolCall={item} />
-                  ) : item.type === "message" ? (
-                    <div className="flex flex-col gap-2">
-                      <Message message={item} />
-                      {item.content &&
-                        item.content[0].annotations &&
-                        item.content[0].annotations.length > 0 && (
+      <div className="flex-1 overflow-y-auto">
+        <div className="w-full">
+          {items.map((item, index) => (
+            <React.Fragment key={index}>
+              {item.type === "tool_call" ? (
+                <div className="message-container">
+                  <div className="message-content">
+                    <div className="w-full">
+                      {item.tool_type === "web_search_call" ? (
+                        <WebSearchCall webSearchCall={item as any} />
+                      ) : (
+                        <ToolCall toolCall={item} />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : item.type === "message" ? (
+                <div className={`message-container ${item.role} ${(item as any).isSummary ? 'thinking' : ''}`}>
+                  <div className="message-content">
+                    <Message message={item} />
+                  </div>
+                  {item.content &&
+                    item.content[0].annotations &&
+                    item.content[0].annotations.length > 0 && (
+                      <div className="message-content">
+                        <div className="message-avatar"></div>
+                        <div className="message-text">
                           <Annotations
                             annotations={item.content[0].annotations}
                           />
-                        )}
+                        </div>
+                      </div>
+                    )}
+                </div>
+              ) : item.type === "mcp_list_tools" ? (
+                <div className="message-container">
+                  <div className="message-content">
+                    <div className="w-full">
+                      <McpToolsList item={item} />
                     </div>
-                  ) : item.type === "mcp_list_tools" ? (
-                    <McpToolsList item={item} />
-                  ) : item.type === "mcp_approval_request" ? (
-                    <McpApproval
-                      item={item as McpApprovalRequestItem}
-                      onRespond={onApprovalResponse}
-                    />
-                  ) : null}
-                </React.Fragment>
-              ))}
-              {isAssistantLoading && <LoadingMessage />}
-              <div ref={itemsEndRef} />
+                  </div>
+                </div>
+              ) : item.type === "mcp_approval_request" ? (
+                <div className="message-container">
+                  <div className="message-content">
+                    <div className="w-full">
+                      <McpApproval
+                        item={item as McpApprovalRequestItem}
+                        onRespond={onApprovalResponse}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </React.Fragment>
+          ))}
+          
+          {isAssistantLoading && (
+            <div className="message-container assistant">
+              <div className="message-content">
+                <div className="message-avatar assistant">
+                  <div className="w-4 h-4 rounded-sm bg-white flex items-center justify-center">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  </div>
+                </div>
+                <div className="message-text">
+                  <LoadingMessage />
+                </div>
+              </div>
             </div>
-          </div>
+          )}
+          
+          <div ref={itemsEndRef} />
         </div>
       </div>
       
-      {/* Input Area */}
-      <div className="border-t bg-white/80 backdrop-blur-sm">
-        <div className="max-w-4xl mx-auto p-4 md:p-6">
-          <div className="relative">
-            <div className="flex items-end gap-3 rounded-2xl border border-gray-200 bg-white shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20">
-              <div className="flex-1">
-                <textarea
-                  id="prompt-textarea"
-                  tabIndex={0}
-                  dir="auto"
-                  rows={1}
-                  placeholder="Ask me anything..."
-                  className="block w-full resize-none border-0 bg-transparent px-4 py-4 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-0 sm:text-sm"
-                  value={inputMessageText}
-                  onChange={(e) => setinputMessageText(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  onCompositionStart={() => setIsComposing(true)}
-                  onCompositionEnd={() => setIsComposing(false)}
-                  style={{
-                    height: 'auto',
-                    minHeight: '56px',
-                    maxHeight: '200px',
-                  }}
-                  onInput={(e) => {
-                    const target = e.target as HTMLTextAreaElement;
-                    target.style.height = 'auto';
-                    target.style.height = Math.min(target.scrollHeight, 200) + 'px';
-                  }}
-                />
-              </div>
-              <div className="p-3">
-                <button
-                  disabled={!inputMessageText.trim() || isAssistantLoading}
-                  data-testid="send-button"
-                  className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                  onClick={() => {
-                    onSendMessage(inputMessageText);
-                    setinputMessageText("");
-                  }}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    className="text-white"
-                  >
-                    <path
-                      fill="currentColor"
-                      fillRule="evenodd"
-                      d="M3.4 12L2.1 7.3c-.3-.8.5-1.6 1.3-1.3L20.6 11c.8.3.8 1.4 0 1.7L3.4 17.7c-.8.3-1.6-.5-1.3-1.3L3.4 12zm1.6 0L4.4 9.5 16.2 12 4.4 14.5 5 12z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
+      <div className="chat-input-container">
+        <div className="chat-input-wrapper">
+          <textarea
+            ref={textareaRef}
+            placeholder="Message ChatGPT..."
+            className="chat-input"
+            value={inputMessageText}
+            onChange={(e) => setinputMessageText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onCompositionStart={() => setIsComposing(true)}
+            onCompositionEnd={() => setIsComposing(false)}
+            rows={1}
+          />
+          <button
+            disabled={!inputMessageText.trim() || isAssistantLoading}
+            className="send-button"
+            onClick={handleSend}
+            type="button"
+          >
+            <ArrowUp className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>

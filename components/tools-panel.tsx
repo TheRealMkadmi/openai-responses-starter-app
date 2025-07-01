@@ -7,7 +7,7 @@ import McpConfig from "./mcp-config";
 import PanelConfig from "./panel-config";
 import useToolsStore from "@/stores/useToolsStore";
 
-export default function ContextPanel() {
+export default function ToolsPanel() {
   const {
     fileSearchEnabled,
     setFileSearchEnabled,
@@ -20,42 +20,47 @@ export default function ContextPanel() {
     codeInterpreterEnabled,
     setCodeInterpreterEnabled,
   } = useToolsStore();
+  
   return (
     <div className="h-full flex flex-col">
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         <PanelConfig
           title="File Search"
-          tooltip="Allows to search a knowledge base (vector store)"
+          tooltip="Search through uploaded documents and knowledge base"
           enabled={fileSearchEnabled}
           setEnabled={setFileSearchEnabled}
         >
           <FileSearchSetup />
         </PanelConfig>
+        
         <PanelConfig
           title="Web Search"
-          tooltip="Allows to search the web"
+          tooltip="Search the internet for current information"
           enabled={webSearchEnabled}
           setEnabled={setWebSearchEnabled}
         >
           <WebSearchConfig />
         </PanelConfig>
+        
         <PanelConfig
           title="Code Interpreter"
-          tooltip="Allows the assistant to run Python code"
+          tooltip="Execute Python code and perform data analysis"
           enabled={codeInterpreterEnabled}
           setEnabled={setCodeInterpreterEnabled}
         />
+        
         <PanelConfig
           title="Functions"
-          tooltip="Allows to use locally defined functions"
+          tooltip="Use custom functions for extended capabilities"
           enabled={functionsEnabled}
           setEnabled={setFunctionsEnabled}
         >
           <FunctionsView />
         </PanelConfig>
+        
         <PanelConfig
           title="MCP"
-          tooltip="Allows to call tools via remote MCP server"
+          tooltip="Connect to Model Context Protocol servers"
           enabled={mcpEnabled}
           setEnabled={setMcpEnabled}
         >

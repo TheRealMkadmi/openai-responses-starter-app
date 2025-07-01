@@ -53,6 +53,9 @@ export interface ToolCallItem {
     container_id?: string;
     filename?: string;
   }[];
+  // Additional fields for web search tracking
+  searchQueries?: string[];
+  currentQuery?: string;
 }
 
 export interface McpListToolsItem {
@@ -200,6 +203,8 @@ export const processMessages = async () => {
       case "response.reasoning_summary_text.delta": {
         const { delta, item_id } = data;
         summaryBuffer += (typeof delta === 'string' ? delta : '');
+        
+        // Find existing reasoning message or create new one
         const lastItem = chatMessages[chatMessages.length - 1];
         if (
           !lastItem ||
@@ -207,21 +212,47 @@ export const processMessages = async () => {
           lastItem.id !== item_id ||
           !(lastItem as any).isSummary
         ) {
-          chatMessages.push({
+          // Create new reasoning summary message
+          const newReasoningMessage = {
             type: "message",
             role: "assistant",
             id: item_id,
             isSummary: true,
             content: [{ type: "output_text", text: summaryBuffer }],
-          } as MessageItem & { isSummary: boolean });
+          } as MessageItem & { isSummary: boolean };
+          
+          chatMessages.push(newReasoningMessage);
         } else {
+          // Update existing reasoning message
           lastItem.content[0].text = summaryBuffer;
         }
         setChatMessages([...chatMessages]);
         break;
       }
-      // Marker for summary completion (no-op)
+      
+      // Marker for summary completion - ensure reasoning message is finalized
       case "response.reasoning_summary_text.finished": {
+        const { item_id } = data;
+        
+        // Ensure the reasoning message is properly finalized
+        const reasoningMessage = chatMessages.find(
+          (msg) => msg.type === "message" && msg.id === item_id && (msg as any).isSummary
+        ) as MessageItem | undefined;
+        
+        if (reasoningMessage && summaryBuffer) {
+          reasoningMessage.content[0].text = summaryBuffer;
+          setChatMessages([...chatMessages]);
+          
+          // Add to conversation items for API context
+          conversationItems.push({
+            role: "assistant",
+            content: [{ type: "output_text", text: summaryBuffer }],
+          });
+          setConversationItems([...conversationItems]);
+        }
+        
+        // Reset summary buffer for next reasoning session
+        summaryBuffer = "";
         break;
       }
       case "response.output_text.delta":
@@ -234,13 +265,14 @@ export const processMessages = async () => {
         }
         assistantMessageContent += partial;
 
-        // If the last message isn't an assistant message, create a new one
+        // If the last message isn't an assistant message with the same item_id, create a new one
         const lastItem = chatMessages[chatMessages.length - 1];
         if (
           !lastItem ||
           lastItem.type !== "message" ||
           lastItem.role !== "assistant" ||
-          (lastItem.id && lastItem.id !== item_id)
+          (lastItem.id && lastItem.id !== item_id) ||
+          (lastItem as any).isSummary // Don't mix reasoning with regular responses
         ) {
           chatMessages.push({
             type: "message",
@@ -330,6 +362,8 @@ export const processMessages = async () => {
               tool_type: "web_search_call",
               status: item.status || "in_progress",
               id: item.id,
+              arguments: item.arguments || "",
+              parsedArguments: item.arguments ? parse(item.arguments) : {},
             });
             setChatMessages([...chatMessages]);
             break;
@@ -493,12 +527,82 @@ export const processMessages = async () => {
         break;
       }
 
+      case "response.web_search_call.in_progress": {
+        console.log("Web search in progress:", data);
+        const { item_id } = data;
+        const toolCallMessage = chatMessages.find((m) => m.id === item_id);
+        if (toolCallMessage && toolCallMessage.type === "tool_call") {
+          toolCallMessage.status = "in_progress";
+          
+          // Extract and set the current search query from arguments
+          if (toolCallMessage.parsedArguments && toolCallMessage.parsedArguments.query) {
+            toolCallMessage.currentQuery = toolCallMessage.parsedArguments.query;
+          }
+          
+          setChatMessages([...chatMessages]);
+        }
+        break;
+      }
+
+      case "response.web_search_call.searching": {
+        console.log("Web search searching:", data);
+        const { item_id, query } = data;
+        const toolCallMessage = chatMessages.find((m) => m.id === item_id);
+        if (toolCallMessage && toolCallMessage.type === "tool_call") {
+          toolCallMessage.status = "searching";
+          
+          // Update current query if provided in the event
+          if (query) {
+            toolCallMessage.currentQuery = query;
+            // Add to search queries history if it's a new query
+            if (!toolCallMessage.searchQueries) {
+              toolCallMessage.searchQueries = [];
+            }
+            if (!toolCallMessage.searchQueries.includes(query)) {
+              toolCallMessage.searchQueries.push(query);
+            }
+          }
+          
+          setChatMessages([...chatMessages]);
+        }
+        break;
+      }
+
       case "response.web_search_call.completed": {
+        console.log("Web search completed:", data);
         const { item_id, output } = data;
         const toolCallMessage = chatMessages.find((m) => m.id === item_id);
         if (toolCallMessage && toolCallMessage.type === "tool_call") {
           toolCallMessage.output = output;
           toolCallMessage.status = "completed";
+          
+          // Mark current query as completed if it exists
+          if (toolCallMessage.currentQuery && toolCallMessage.searchQueries) {
+            if (!toolCallMessage.searchQueries.includes(toolCallMessage.currentQuery)) {
+              toolCallMessage.searchQueries.push(toolCallMessage.currentQuery);
+            }
+            toolCallMessage.currentQuery = undefined; // Clear current query when completed
+          }
+          
+          setChatMessages([...chatMessages]);
+        }
+        break;
+      }
+
+      // Handle potential web search query updates
+      case "response.web_search_query.added":
+      case "response.web_search_query.updated": {
+        console.log("Web search query event:", event, data);
+        const { item_id, query } = data;
+        const toolCallMessage = chatMessages.find((m) => m.id === item_id);
+        if (toolCallMessage && toolCallMessage.type === "tool_call") {
+          toolCallMessage.currentQuery = query;
+          if (!toolCallMessage.searchQueries) {
+            toolCallMessage.searchQueries = [];
+          }
+          if (!toolCallMessage.searchQueries.includes(query)) {
+            toolCallMessage.searchQueries.push(query);
+          }
           setChatMessages([...chatMessages]);
         }
         break;
